@@ -20,7 +20,8 @@ export const env: AppEnv = {
   jwtRefreshSecret: required("JWT_REFRESH_SECRET", "dev_refresh_secret"),
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL ?? "15m",
   refreshTokenTtl: process.env.REFRESH_TOKEN_TTL ?? "7d",
-  refreshCookieName: process.env.REFRESH_COOKIE_NAME ?? "refreshToken"
+  refreshCookieName: process.env.REFRESH_COOKIE_NAME ?? "refreshToken",
+  mistralapi: required("MISTRAL_API"),
 };
 
 export const isProduction = env.nodeEnv === "production";

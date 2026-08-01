@@ -4,6 +4,7 @@ import morgan from "morgan";
 import { ApiError } from "../utils/api-error";
 import { router } from "../routes";
 
+
 export const app = express();
 
 app.use(morgan("dev"));
@@ -12,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api/v1", router);
+
 
 app.use((_req, _res, next) => {
   next(new ApiError(404, "Route not found"));
