@@ -1,11 +1,24 @@
-import {messageModel} from "../dao/models/message.model.js"
-import { MessageRole } from "../types/chat.js";
+import { MessageModel, type MessageDocument } from "./models/message.model.js"
+import type { Message } from "../types/chat.js"
 
-class MessageDao{
-    async createMessage(conversationId:string , content:string , role:MessageRole){
-        console.log("ci", conversationId)
-        return await messageModel.create({conversationId , content , role})
 
+class MessageDAO {
+
+
+    async createMessage(messageData: Message): Promise<MessageDocument> {
+
+        const { content, author, conversation } = messageData;
+
+        const message = await MessageModel.create({ content, author, conversation });
+
+        return message;
     }
+
+    async findMessagesByConversation(conversation: string) {
+        //Sirf woh messages find karo jinka conversation field provided conversation ID ke equal hai.
+        return MessageModel.find({ conversation }).sort({ createdAt: 1 }).lean();
+    }
+
 }
-export const messageDao = new MessageDao();
+
+export const messageDao = new MessageDAO();

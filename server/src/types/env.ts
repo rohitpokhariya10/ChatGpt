@@ -1,4 +1,3 @@
-//This is a custom Data Type
 export type AppEnv = {
   port: number;
   mongoUri: string;
@@ -8,6 +7,9 @@ export type AppEnv = {
   accessTokenTtl: string;
   refreshTokenTtl: string;
   refreshCookieName: string;
-  mistralapi:string,
-
+  mistralApiKey: string;
+  tavilyApiKey: string;
+  langSmithApiKey: string;
+  langSmithTracing: string;
+  langSmithProject: string;
 };

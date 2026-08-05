@@ -17,6 +17,11 @@ import { validateRequest } from "../validations/validate-request";
 
 const authRouter = Router();
 
+
+
+/**
+ * POST /api/v1/auth/register
+ */
 authRouter.post(
   "/register",
   registerValidation,

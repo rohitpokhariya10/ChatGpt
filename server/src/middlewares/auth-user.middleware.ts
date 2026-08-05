@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/api-error";
 import { verifyAccessToken } from "../utils/jwt";
 
-export function authMiddleware(req: Request, _res: Response, next: NextFunction): void {
+export function authUserMiddleware(req: Request, _res: Response, next: NextFunction): void {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader) {

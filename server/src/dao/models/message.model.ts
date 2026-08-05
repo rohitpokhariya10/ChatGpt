@@ -1,27 +1,29 @@
-import {Schema , Types , type InferSchemaType , model} from "mongoose";
+import { Schema, model, type InferSchemaType, Types } from "mongoose";
 
 const messageSchema = new Schema({
-    conversationId:{
-      type:Schema.Types.ObjectId,
-      ref:"Conversation",
-      index:true,
+    conversation: {
+        type: Schema.Types.ObjectId,
+        ref: "Conversation",
+        required: true,
+        index: true
     },
-   content:{
-    type:String,
-    require:true,
-    trim:true,
-   },
-   role:{
-    type:String,
-    enum:["Ai","Human"],
-    default:"Human"
-   }
-
-},{
-    timestamps:true,
+    author: {
+        type: String,
+        enum: ["user", "ai"],
+        default: "user",
+    },
+    content:{
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 1
+    }
+}, {
+    timestamps: true
 });
 
-export type messageDocument = InferSchemaType<typeof messageSchema> & {
+export type MessageDocument = InferSchemaType<typeof messageSchema> & {
     _id: Types.ObjectId;
-}
-export const messageModel = model("messages" , messageSchema);
+};
+
+export const MessageModel = model("Message", messageSchema);
