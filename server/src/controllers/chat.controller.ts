@@ -5,7 +5,11 @@ import { getConversationTitle, getStream } from "../service/ai.service";
 import { conversationDao } from "../dao/conversation.dao";
 import { messageDao } from "../dao/message.dao";
 import { ApiError } from "../utils/api-error";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import {
+  AIMessage,
+  HumanMessage,
+  ToolMessage,
+} from "@langchain/core/messages";
 
 export const listConversations = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -57,12 +61,21 @@ export const getConversation = asyncHandler(
         title: conversation.title,
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
-        messages: messages.map((message) => ({
-          id: message._id.toString(),
-          author: message.author,
-          content: message.content,
-          createdAt: message.createdAt,
-        })),
+        messages: messages
+          .filter(
+            (message) =>
+              message.author !== "tool" &&
+              !(
+                message.author === "ai" &&
+                (message.toolCalls?.length ?? 0) > 0
+              ),
+          )
+          .map((message) => ({
+            id: message._id.toString(),
+            author: message.author,
+            content: message.content,
+            createdAt: message.createdAt,
+          })),
       },
     });
   },
@@ -119,13 +132,29 @@ export const chatController = asyncHandler(
     const databaseMessages =
       await messageDao.findMessagesByConversation(conversationId);
 
-    const messages = databaseMessages.map((message) => {
-      if (message.author === "user") return new HumanMessage(message.content);
-      else return new AIMessage(message.content);
+    const messages = databaseMessages.map((storedMessage) => {
+      if (storedMessage.author === "user") {
+        return new HumanMessage(storedMessage.content);
+      }
+
+      if (storedMessage.author === "tool") {
+        return new ToolMessage({
+          content: storedMessage.content,
+          tool_call_id: storedMessage.toolCallId ?? "",
+        });
+      }
+
+      return new AIMessage({
+        content: storedMessage.content,
+        tool_calls: (storedMessage.toolCalls ?? []).map((toolCall) => ({
+          args: toolCall.args,
+          id: toolCall.id ?? "",
+          name: toolCall.name ?? "",
+        })),
+      });
     });
 
     const stream = await getStream({ messages, userId: user.userId });
-
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -135,28 +164,41 @@ export const chatController = asyncHandler(
       encodeURIComponent(conversationTitle),
     );
 
-    let aiMessage: string = "";
-
-    for await (const [chunk, metaData] of stream) {
-      //Simple reason: agent stream mein sirf final AI answer nahi, internal tool messages bhi aate hain. Hume frontend par sirf AI ka visible answer bhejna hai.
-      if (chunk.type !== "ai") {
-        continue;
+    // Stream visible AI text to the client and persist the complete agent history.
+    for await (const [mode, data] of stream) {
+      if (mode === "messages") {
+        const [chunk] = data;
+        if (chunk.type === "ai" && chunk.text) {
+          res.write(`data: ${JSON.stringify(chunk.text)}\n\n`);
+        }
       }
 
-      if (!chunk.text) {
-        continue;
-      }
-      res.write(`data: ${JSON.stringify(chunk.text)}\n\n`);
+      if (mode === "values") {
+        const state = data;
+        const latestState = state.messages.at(-1);
 
-      aiMessage += chunk.text;
+        if (latestState && AIMessage.isInstance(latestState)) {
+          await messageDao.createMessage({
+            content: latestState.text,
+            author: "ai",
+            conversation: conversationId,
+            toolCalls: (latestState.tool_calls ?? []).map((toolCall) => ({
+              args: toolCall.args,
+              id: toolCall.id ?? "",
+              name: toolCall.name,
+            })),
+          });
+        } else if (latestState && ToolMessage.isInstance(latestState)) {
+          await messageDao.createMessage({
+            content: latestState.text,
+            author: "tool",
+            conversation: conversationId,
+            toolCallId: latestState.tool_call_id,
+          });
+        }
+      }
     }
 
-    await messageDao.createMessage({
-      content: aiMessage,
-      author: "ai",
-      conversation: conversationId,
-    });
-
-    res.end(); //Saare chunks bhej diye hain, response complete hai.
+    res.end();
   },
 );

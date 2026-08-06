@@ -58,9 +58,9 @@ export function createMemoryTools(userId: string) {
   };
 }
 
-export  const getWebResultTool = tool(
-  async ({query}) =>{
-     return await getResultFromWeb({query});
+export const getWebResultTool = tool(
+  async ({ query }) => {
+    return getResultFromWeb({ query });
   },
   {
     name:"getWebResultTool",

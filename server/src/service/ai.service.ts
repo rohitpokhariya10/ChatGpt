@@ -1,5 +1,5 @@
 import { ChatMistralAI } from "@langchain/mistralai";
-import { createAgent, HumanMessage, AIMessage } from "langchain";
+import { createAgent, HumanMessage, AIMessage, type BaseMessage } from "langchain";
 import { env } from "../config/env";
 import * as z from "zod";
 import { createMemoryTools, getWebResultTool } from "./tools/tools.js";
@@ -40,7 +40,7 @@ export async function getStream({
   messages,
   userId,
 }: {
-  messages: (HumanMessage | AIMessage)[];
+  messages: BaseMessage[];
   userId: string;
 }) {
   // const stream = await mediumModel.stream(messages)
@@ -142,7 +142,7 @@ When calling getWebResult:
       messages,
     },
     {
-      streamMode: "messages",
+      streamMode: ["messages", "values"],
     },
   );
   return stream;
